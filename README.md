@@ -1,6 +1,6 @@
-# TOON2: Token-Oriented Object Notation v2
+# Deep-TOON: Deep Token-Oriented Object Notation
 
-TOON2 is a token-optimized JSON representation format designed for LLMs and AI applications. It provides significant compression for nested JSON structures while maintaining perfect data fidelity and LLM readability.
+Deep-TOON is a token-optimized JSON representation format designed for LLMs and AI applications. It provides significant compression for nested JSON structures while maintaining perfect data fidelity and LLM readability.
 
 ## 📊 Performance Overview
 
@@ -8,7 +8,7 @@ TOON2 is a token-optimized JSON representation format designed for LLMs and AI a
 
 ```
 Original JSON:    1,675 tokens
-TOON2:           1,065 tokens (36.4% reduction)
+Deep-TOON:       1,065 tokens (36.4% reduction)
 ```
 
 **Comprehensive Test Results:**
@@ -28,7 +28,7 @@ TOON2:           1,065 tokens (36.4% reduction)
 
 ### Hierarchical Tuples
 
-TOON2 uses explicit hierarchical notation to group related fields:
+Deep-TOON uses explicit hierarchical notation to group related fields:
 
 ```toon2
 # Nested objects become tuples
@@ -67,7 +67,7 @@ address{street,city,coordinates{lat,lng}}
 }
 ```
 
-**TOON2 Format:**
+**Deep-TOON Format:**
 ```toon2
 users[1,]{id,firstName,lastName,age,address{address,city,state,coordinates{lat,lng}},bank{cardNumber,cardType}}:
   1,Emily,Johnson,28,("626 Main Street",Phoenix,Mississippi,(-77.16213,-92.084824)),("9289760655481815",Elo)
@@ -80,20 +80,16 @@ limit: 3
 
 ### Installation
 
-```python
-# Copy toon2_encoder.py and toon2_decoder.py to your project
-from toon2_encoder import Toon2Encoder
-from toon2_decoder import Toon2Decoder
+```bash
+pip install deep-toon
 ```
 
-### Basic Encoding/Decoding
+### Basic Usage
 
 ```python
-import json
-from toon2_encoder import Toon2Encoder
-from toon2_decoder import Toon2Decoder
+import deep_toon
 
-# Sample nested data
+# Your JSON data
 data = {
     "users": [
         {
@@ -103,10 +99,6 @@ data = {
                 "street": "123 Main St",
                 "city": "NYC",
                 "coordinates": {"lat": 40.7, "lng": -74.0}
-            },
-            "preferences": {
-                "theme": "dark", 
-                "notifications": True
             }
         },
         {
@@ -116,88 +108,39 @@ data = {
                 "street": "456 Oak Ave",
                 "city": "LA", 
                 "coordinates": {"lat": 34.0, "lng": -118.2}
-            },
-            "preferences": {
-                "theme": "light",
-                "notifications": False  
             }
         }
-    ],
-    "count": 2
+    ]
 }
 
-# Encode to TOON2
-encoder = Toon2Encoder()
-toon2_str = encoder.encode(data)
-print("TOON2 Format:")
-print(toon2_str)
+# Compress to Deep-TOON format
+compressed = deep_toon.encode(data)
+print("Compressed:", compressed)
 
-# Decode back to original
-decoder = Toon2Decoder() 
-decoded_data = decoder.decode(toon2_str)
-
-# Verify perfect roundtrip
-from deepdiff import DeepDiff
-diff = DeepDiff(data, decoded_data, ignore_order=True)
-print("Roundtrip Success:", not diff)
+# Decompress back to original
+original = deep_toon.decode(compressed)
+print("Original data restored:", data == original)
 ```
 
 **Output:**
 ```toon2
-users[2,]{id,name,address{street,city,coordinates{lat,lng}},preferences{theme,notifications}}:
-  1,Alice,("123 Main St",NYC,(40.7,-74.0)),(dark,true)
-  2,Bob,("456 Oak Ave",LA,(34.0,-118.2)),(light,false)
-count: 2
+users[2,]{id,name,address{street,city,coordinates{lat,lng}}}:
+  1,Alice,("123 Main St",NYC,(40.7,-74.0))
+  2,Bob,("456 Oak Ave",LA,(34.0,-118.2))
 ```
 
-### Token Counting Example
+### Advanced Usage
 
 ```python
-import tiktoken
-from toon2_encoder import Toon2Encoder
+# Use the classes directly for more control
+from deep_toon import DeepToonEncoder, DeepToonDecoder
 
-def count_tokens(text, model="gpt-4"):
-    encoding = tiktoken.encoding_for_model(model)
-    return len(encoding.encode(text))
+encoder = DeepToonEncoder()
+decoder = DeepToonDecoder()
 
-# Compare token usage
-original_json = json.dumps(data)
-toon2_format = encoder.encode(data)
-
-original_tokens = count_tokens(original_json)
-toon2_tokens = count_tokens(toon2_format)
-
-print(f"Original JSON: {original_tokens} tokens")
-print(f"TOON2 Format:  {toon2_tokens} tokens") 
-print(f"Reduction:     {(original_tokens-toon2_tokens)/original_tokens*100:.1f}%")
-```
-
-### Real-World API Example
-
-```python
-import requests
-from toon2_encoder import Toon2Encoder
-
-# Fetch real data
-response = requests.get("https://dummyjson.com/users?limit=5")
-api_data = response.json()
-
-# Convert to TOON2
-encoder = Toon2Encoder()
-compressed = encoder.encode(api_data)
-
-print(f"Original size: {len(json.dumps(api_data))} chars")
-print(f"TOON2 size:    {len(compressed)} chars")
-print(f"Compression:   {(len(json.dumps(api_data))-len(compressed))/len(json.dumps(api_data))*100:.1f}%")
-
-# Use in LLM prompt
-prompt = f"""
-Analyze this user data in TOON2 format:
-
-{compressed}
-
-What insights can you provide about the users?
-"""
+# Custom delimiter for data with commas
+encoder = DeepToonEncoder(delimiter=';')
+compressed = encoder.encode(data)
 ```
 
 ## 🎨 Format Features
@@ -241,15 +184,15 @@ Simple,Text,123
 "Text with, comma","Multi word text","123-abc"
 ```
 
-## 🎨 TOON2 Design Philosophy
+## 🎨 Deep-TOON Design Philosophy
 
-TOON2 uses **hierarchical tuples** to represent nested structures efficiently:
+Deep-TOON uses **hierarchical tuples** to represent nested structures efficiently:
 
 ```json  
 // Original JSON
 {"user": {"profile": {"name": "Alice", "age": 30}}}
 
-// TOON2 representation
+// Deep-TOON representation
 [1,]{user{profile{name,age}}}:
   (("Alice",30))
 ```
@@ -263,7 +206,7 @@ TOON2 uses **hierarchical tuples** to represent nested structures efficiently:
 
 ## 🚀 Performance Characteristics
 
-### When TOON2 Excels
+### When Deep-TOON Excels
 
 - **Nested objects** (addresses, preferences, metadata)
 - **Repeated structures** (arrays of complex objects)  
@@ -285,13 +228,13 @@ TOON2 uses **hierarchical tuples** to represent nested structures efficiently:
 
 ```python
 # Use semicolon delimiter for data containing commas
-encoder = Toon2Encoder(delimiter=";")
+encoder = DeepToonEncoder(delimiter=";")
 ```
 
 ### Handling Large Arrays
 
 ```python
-# TOON2 automatically detects when arrays are worth compressing
+# Deep-TOON automatically detects when arrays are worth compressing
 # Arrays with <2 items or inconsistent schemas fall back to JSON
 ```
 
@@ -299,10 +242,10 @@ encoder = Toon2Encoder(delimiter=";")
 
 ```python
 try:
-    decoded = decoder.decode(toon2_string)
-except Toon2DecodeError as e:
+    decoded = decoder.decode(deep_toon_string)
+except DeepToonDecodeError as e:
     print(f"Decode error: {e}")
-    # Handle malformed TOON2 data
+    # Handle malformed Deep-TOON data
 ```
 
 ## 📈 Use Cases
@@ -331,7 +274,7 @@ except Toon2DecodeError as e:
 
 ## 🤝 Contributing
 
-TOON2 is designed to be extended and improved. Key areas for contribution:
+Deep-TOON is designed to be extended and improved. Key areas for contribution:
 
 - **Performance optimization** for very large datasets
 - **Additional encoding strategies** for specific data patterns  
@@ -344,4 +287,4 @@ MIT License - Feel free to use in your projects!
 
 ---
 
-**TOON2 - Efficient JSON representation for LLM applications.** 🚀✨
+**Deep-TOON - Efficient JSON representation for LLM applications.** 🚀✨

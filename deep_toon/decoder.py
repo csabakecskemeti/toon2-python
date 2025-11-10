@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-TOON2 Clean Decoder - Final Specification
+Deep-TOON Clean Decoder - Final Specification
 
-Decoder for the clean TOON2 implementation with hierarchical tuples.
+Decoder for the clean Deep-TOON implementation with hierarchical tuples.
 """
 
 import json
@@ -10,13 +10,13 @@ import re
 from typing import Any, Dict, List, Optional, Tuple
 
 
-class Toon2DecodeError(Exception):
-    """Error during TOON2 decoding."""
+class DeepToonDecodeError(Exception):
+    """Error during Deep-TOON decoding."""
     pass
 
 
-class Toon2Decoder:
-    """Clean TOON2 decoder for hierarchical tuple format."""
+class DeepToonDecoder:
+    """Clean Deep-TOON decoder for hierarchical tuple format."""
     
     def decode(self, toon2_str: str) -> Any:
         """Main decoding entry point."""
@@ -26,7 +26,7 @@ class Toon2Decoder:
         
         first_line = lines[0].strip()
         
-        # Check if it's TOON2 tabular format
+        # Check if it's Deep-TOON tabular format
         tabular_match = re.match(r'^(.*?)\[(\d+),([^]]*)\]\{(.*)\}:$', first_line)
         if tabular_match:
             key, length, delimiter, schema = tabular_match.groups()
@@ -134,7 +134,7 @@ class Toon2Decoder:
             values = self._smart_split(line, delimiter)
             
             if len(values) != len(schema_groups):
-                raise Toon2DecodeError(f"Row {i+1} has {len(values)} values but expected {len(schema_groups)}")
+                raise DeepToonDecodeError(f"Row {i+1} has {len(values)} values but expected {len(schema_groups)}")
             
             # Decode each value according to its schema
             obj = {}
@@ -277,7 +277,7 @@ class Toon2Decoder:
         while i < len(lines):
             line = lines[i].strip()
             
-            # Check if this line starts an embedded TOON2 array
+            # Check if this line starts an embedded Deep-TOON array
             tabular_pattern = r'^(.*?)\[(\d+),([^]]*)\]\{(.*)\}:$'
             tabular_match = re.match(tabular_pattern, line)
             
@@ -305,7 +305,7 @@ class Toon2Decoder:
             
             # Handle simple key: value pairs
             elif ':' in line and not line.endswith(':'):
-                # Make sure this isn't a TOON2 tabular format line
+                # Make sure this isn't a Deep-TOON tabular format line
                 if not re.match(tabular_pattern, line):
                     key, value = line.split(':', 1)
                     value = value.strip()
@@ -328,7 +328,7 @@ class Toon2Decoder:
 def test_roundtrip():
     """Test complete roundtrip with your notebook example."""
     import requests
-    from toon2_encoder import Toon2Encoder
+    from .encoder import DeepToonEncoder
     import tiktoken
     from deepdiff import DeepDiff
     
@@ -348,17 +348,17 @@ def test_roundtrip():
     original_tokens = count_tokens(json.dumps(data))
     
     # Encode  
-    encoder = Toon2Encoder()
+    encoder = DeepToonEncoder()
     encoded = encoder.encode(data)
     toon_tokens = count_tokens(encoded)
     
     print(f"📥 Original tokens: {original_tokens}")
-    print(f"📤 TOON2 tokens: {toon_tokens}")
+    print(f"📤 Deep-TOON tokens: {toon_tokens}")
     print(f"💰 Reduction: {(original_tokens - toon_tokens)/original_tokens*100:.1f}%")
     print()
     
     # Decode
-    decoder = Toon2Decoder()
+    decoder = DeepToonDecoder()
     decoded = decoder.decode(encoded)
     
     print(f"🔄 Roundtrip check:")

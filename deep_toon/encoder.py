@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-TOON2 Clean Implementation - Final Specification
+Deep-TOON Clean Implementation - Final Specification
 
 Based on design decision for Option A: Explicit Hierarchical Tuples
 Target: 40-60% token reduction on real-world nested JSON
@@ -35,8 +35,8 @@ class TupleGroup:
         return self.name
 
 
-class Toon2Encoder:
-    """Clean TOON2 encoder implementing Option A specification."""
+class DeepToonEncoder:
+    """Clean Deep-TOON encoder implementing Option A specification."""
     
     def __init__(self, delimiter: str = ","):
         self.delimiter = delimiter
@@ -51,7 +51,7 @@ class Toon2Encoder:
             return json.dumps(data)  # Fallback for primitives
     
     def _can_compress_array(self, arr: List[Any]) -> bool:
-        """Check if array is suitable for TOON2 compression."""
+        """Check if array is suitable for Deep-TOON compression."""
         if not arr:
             return False
         
@@ -84,7 +84,7 @@ class Toon2Encoder:
         return consistent_count >= len(arr) * 0.6
     
     def _encode_array(self, arr: List[Dict[str, Any]]) -> str:
-        """Encode array using TOON2 format."""
+        """Encode array using Deep-TOON format."""
         # Build optimal schema
         schema = self._build_optimal_schema(arr)
         
@@ -306,7 +306,7 @@ class Toon2Encoder:
         # First pass: handle arrays that can be compressed
         for key, value in obj.items():
             if isinstance(value, list) and self._can_compress_array(value):
-                # Use TOON2 for arrays
+                # Use Deep-TOON for arrays
                 encoded_array = self._encode_array(value)
                 lines.append(f"{key}{encoded_array}")
                 processed_keys.add(key)
@@ -334,8 +334,8 @@ class Toon2Encoder:
 
 
 # Test function
-def test_toon2_clean():
-    """Test the clean TOON2 implementation."""
+def test_deep_toon_clean():
+    """Test the clean Deep-TOON implementation."""
     
     # Test data similar to dummyjson structure
     test_data = [
@@ -373,10 +373,10 @@ def test_toon2_clean():
         }
     ]
     
-    encoder = Toon2Encoder()
+    encoder = DeepToonEncoder()
     encoded = encoder.encode(test_data)
     
-    print("🧪 TOON2 Clean Encoder Test")
+    print("🧪 Deep-TOON Clean Encoder Test")
     print("=" * 40)
     print("Encoded:")
     print(encoded)
@@ -385,9 +385,9 @@ def test_toon2_clean():
     # Calculate rough compression
     original = json.dumps(test_data)
     print(f"Original length: {len(original)}")
-    print(f"TOON2 length: {len(encoded)}")
+    print(f"Deep-TOON length: {len(encoded)}")
     print(f"Compression: {(len(original) - len(encoded)) / len(original) * 100:.1f}%")
 
 
 if __name__ == "__main__":
-    test_toon2_clean()
+    test_deep_toon_clean()

@@ -7,7 +7,7 @@ name = "deep-toon"
 dynamic = ["version"]
 description = "Deep Token-Oriented Object Notation - Efficient JSON compression for LLM applications"
 readme = "README.md"
-license = {text = "MIT"}
+license = { text = "Apache-2.0" }
 authors = [
     {name = "Deep-TOON Contributors"},
 ]
@@ -18,7 +18,6 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",

@@ -283,7 +283,7 @@ Deep-TOON is designed to be extended and improved. Key areas for contribution:
 
 ## 📄 License
 
-MIT License - Feel free to use in your projects!
+Apache 2.0 License - Free for commercial and personal use!
 
 ---
 

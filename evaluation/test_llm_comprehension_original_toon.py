@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-LLM Comprehension Test for Deep-TOON Format
+LLM Comprehension Test for Original TOON Format
 
-Tests whether LLMs can understand and work with Deep-TOON encoded data 
+Tests whether LLMs can understand and work with original TOON encoded data 
 as effectively as original JSON, while measuring token efficiency.
 
-Uses modular test data and questions across complexity levels.
+COST CONTROL: Hard limit of 50 OpenAI API calls per run.
 """
 
 import json
@@ -23,8 +23,9 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from deep_toon import DeepToonEncoder, DeepToonDecoder
-from tests.test_data_questions import generate_comprehensive_test_cases, TestCase
+from toon import encode, decode
+from evaluation.test_data_questions import generate_comprehensive_test_cases, TestCase
+
 
 # Load environment variables
 load_dotenv(override=True)
@@ -94,9 +95,10 @@ def increment_api_calls():
 
 def count_tokens(text: str) -> int:
     """Count GPT tokens in text."""
-    encoding = tiktoken.encoding_for_model("gpt-4")
-    tokens = encoding.encode(text)
-    return len(tokens)
+    encoding = tiktoken.encoding_for_model("gpt-4o-mini")
+    return len(encoding.encode(text))
+
+
 
 
 def encode_and_validate(test_case: TestCase) -> EncodingResult:
@@ -106,16 +108,13 @@ def encode_and_validate(test_case: TestCase) -> EncodingResult:
     original_json = json.dumps(test_case.data, separators=(',', ':'))
     original_tokens = count_tokens(original_json)
     
-    # Deep-TOON encoding
-    encoder = DeepToonEncoder()
-    decoder = DeepToonDecoder()
-    
-    deep_toon = encoder.encode(test_case.data)
-    toon_tokens = count_tokens(deep_toon)
+    # Original TOON encoding
+    toon_data = encode(test_case.data)
+    toon_tokens = count_tokens(toon_data)
     
     # Validate roundtrip
     try:
-        decoded = decoder.decode(deep_toon)
+        decoded = decode(toon_data)
         roundtrip_success = (test_case.data == decoded)
     except Exception:
         roundtrip_success = False
@@ -125,7 +124,7 @@ def encode_and_validate(test_case: TestCase) -> EncodingResult:
     
     return EncodingResult(
         original_json=original_json,
-        deep_toon=deep_toon,
+        deep_toon=toon_data,
         original_tokens=original_tokens,
         toon_tokens=toon_tokens,
         compression_ratio=compression_ratio,
@@ -140,20 +139,18 @@ def query_llm(question: str, data: str, format_name: str) -> LLMResponse:
     
     client = openai.OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
     
-    prompt = f"""Please answer the following question based on the data provided.
+    prompt = f"""Question: {question}
 
-Question: {question}
+Please provide a clear, precise answer. If the question asks for a number, provide just the number with appropriate precision.
 
 Data:
-{data}
-
-Provide only the exact answer requested, nothing more."""
+{data}"""
 
     if DEBUG_MODE:
-        print(f"\n📤 DEBUG - {format_name} Query:")
+        print(f"\n🔍 DEBUG - {format_name} Query:")
         print("=" * 60)
-        print("PROMPT:")
-        print(prompt[:500] + "..." if len(prompt) > 500 else prompt)
+        print("FULL PROMPT:")
+        print(prompt)
         print("=" * 60)
 
     try:
@@ -208,65 +205,77 @@ Response A: {json_resp}
 
 Response B: {toon_resp}
 
-Rules for evaluation:
-1. Responses are EQUIVALENT if they contain the same factual information, even if worded differently
-2. For numerical answers, they must match exactly (34 ≠ 35)
-3. For lists, order doesn't matter but content must match
-4. For text answers, focus on factual content not style
-5. Ignore minor formatting differences
+Are these responses equivalent in meaning? Consider:
+- Do they provide the same factual information?
+- For numerical values: Are they identical when rounded to the specified precision in the question?
+- For text values: Do they refer to the same exact entity or result?
+- For lists: Do they contain the same items in any order?
+- Ignore minor formatting differences like spacing, decimals vs integers if the question specifies rounding
+- Focus on whether both responses correctly answer the specific question asked
 
-Provide your evaluation in this exact format:
-EQUIVALENT: [YES/NO]
-CONFIDENCE: [0.0-1.0]
-REASON: [Brief explanation of your decision]"""
+Examples of EQUIVALENT:
+- "25.67" vs "25.670" (same number, different decimal formatting)
+- "34" vs "34.0" (same when rounded to integer as requested)
+- "New York" vs "New York" (exact match)
+- "desktop" vs "desktop" (exact field value match)
+
+Examples of NOT_EQUIVALENT:
+- "34.25" vs "34.125" (different numbers even when rounded)
+- "x.dummyjson.com" vs "dummyjson.com" (different domain levels)
+- "Alice, Bob" vs "Charlie, Diana" (different people)
+
+Respond with:
+1. "EQUIVALENT" or "NOT_EQUIVALENT"
+2. A confidence score from 0.0 to 1.0
+3. Brief explanation
+
+Format: EQUIVALENT|0.95|Both responses provide the same numerical result when rounded to specified precision"""
 
     if DEBUG_MODE:
-        print(f"\n🔍 DEBUG - Judge Query:")
+        print(f"\n🔍 DEBUG - LLM Judge Query:")
         print("=" * 60)
         print("JUDGE PROMPT:")
-        print(judge_prompt[:500] + "..." if len(judge_prompt) > 500 else judge_prompt)
+        print(judge_prompt)
         print("=" * 60)
 
     try:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are an expert judge evaluating response equivalence. Be precise and consistent."},
+                {"role": "system", "content": "You are an expert evaluator who determines if two responses are equivalent in meaning. Be precise and consistent."},
                 {"role": "user", "content": judge_prompt}
             ],
-            max_tokens=1000,
+            max_tokens=200,
             temperature=0
         )
         
-        judge_content = response.choices[0].message.content.strip()
+        judge_response = response.choices[0].message.content.strip()
         
         if DEBUG_MODE:
-            print(f"\n🔍 DEBUG - Judge Response:")
+            print(f"\n📤 DEBUG - LLM Judge Response:")
             print("-" * 40)
-            print(f"JUDGE RESPONSE: {judge_content}")
+            print(f"JUDGE RESPONSE: {judge_response}")
             print("-" * 40)
         
-        # Parse judge response
-        equivalent = False
-        confidence = 0.0
-        notes = judge_content
+        # Parse the structured response
+        parts = judge_response.split('|')
+        if len(parts) >= 3:
+            equivalent_str = parts[0].strip().upper()
+            confidence = float(parts[1].strip())
+            explanation = parts[2].strip()
+            equivalent = equivalent_str == "EQUIVALENT"
+        else:
+            # Fallback parsing
+            equivalent = "EQUIVALENT" in judge_response.upper()
+            confidence = 0.8 if equivalent else 0.2
+            explanation = judge_response
         
-        for line in judge_content.split('\n'):
-            if line.startswith('EQUIVALENT:'):
-                equivalent = 'YES' in line.upper()
-            elif line.startswith('CONFIDENCE:'):
-                try:
-                    confidence = float(line.split(':')[1].strip())
-                except:
-                    confidence = 0.0
-            elif line.startswith('REASON:'):
-                notes = line.split(':', 1)[1].strip()
-        
-        return equivalent, confidence, notes
+        return equivalent, confidence, explanation
         
     except Exception as e:
         print(f"❌ LLM Judge error: {e}")
-        return False, 0.0, f"Judge error: {e}"
+        # Fallback to simple comparison
+        return json_resp.lower().strip() == toon_resp.lower().strip(), 0.5, f"Judge failed: {e}"
 
 
 def analyze_failure_deep(question: str, json_data: str, toon_data: str, json_resp: str, toon_resp: str, judge_verdict: str) -> str:
@@ -276,28 +285,55 @@ def analyze_failure_deep(question: str, json_data: str, toon_data: str, json_res
     
     client = openai.OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
     
-    analysis_prompt = f"""You are analyzing why an LLM gave different responses to the same question when provided data in different formats.
+    analysis_prompt = f"""You are a data format expert analyzing why two AI systems gave different answers to the same question using different data formats.
 
-QUESTION: {question}
+CONTEXT:
+- Question: {question}
+- The SAME data was provided in two formats: JSON and Deep-TOON (a compact format to save tokens)
+- Two identical AI models answered the same question using each format
+- A judge determined the answers are NOT equivalent
 
-JSON FORMAT RESPONSE: {json_resp}
+FORMATS AND RESPONSES:
 
-DEEP-TOON FORMAT RESPONSE: {toon_resp}
+=== JSON FORMAT DATA ===
+{json_data}
 
-JUDGE VERDICT: {judge_verdict}
+=== JSON AI RESPONSE ===
+{json_resp}
 
-JSON DATA (first 1000 chars): {json_data[:1000]}
+=== DEEP-TOON FORMAT DATA ===
+{toon_data}
 
-DEEP-TOON DATA (first 1000 chars): {toon_data[:1000]}
+=== DEEP-TOON AI RESPONSE ===
+{toon_resp}
 
-Analyze why the responses differ and categorize the issue:
+=== JUDGE VERDICT ===
+{judge_verdict}
 
-1. Data interpretation issues (loss of information, ambiguities, field names/structure)
-2. AI processing differences (parsing complexity, calculation errors, structural navigation)
-3. Format-specific problems (syntax confusion, need for clear separators/labels, missing context clues)
-4. Randomness vs systematic issues (AI randomness/inconsistency, systematic issues with Deep-TOON, improvements to Deep-TOON)
+ANALYSIS TASK:
+Please analyze why these responses differ. Consider:
 
-Provide actionable insights for improving the Deep-TOON format."""
+1. **Data Interpretation Issues**: 
+   - Does the Deep-TOON format lose important information?
+   - Are there ambiguities in how the compressed format represents the data?
+   - Could field names or structure be misinterpreted?
+
+2. **AI Processing Differences**:
+   - Does the compact format make the data harder to parse mentally?
+   - Are there calculation errors due to format complexity?
+   - Does the structure affect how the AI navigates the data?
+
+3. **Format-Specific Problems**:
+   - Are there specific Deep-TOON syntax elements that could confuse AI?
+   - Would clearer separators, labels, or structure help?
+   - Are there missing context clues that JSON provides but Deep-TOON doesn't?
+
+4. **Randomness vs Systematic Issues**:
+   - Does this seem like AI randomness/inconsistency?
+   - Or is there a systematic issue with the Deep-TOON format?
+   - What specific improvements to Deep-TOON might prevent this issue?
+
+Provide a detailed analysis focusing on actionable insights for improving the Deep-TOON format."""
 
     if DEBUG_MODE:
         print(f"\n🔍 DEBUG - Failure Analysis Query:")
@@ -370,7 +406,7 @@ def compare_responses(question: str, json_resp: LLMResponse, toon_resp: LLMRespo
 def run_llm_comprehension_tests(confidence_threshold: float = DEFAULT_CONFIDENCE_THRESHOLD):
     """Run the complete LLM comprehension test suite."""
     
-    print("🤖 LLM COMPREHENSION TEST FOR DEEP-TOON FORMAT")
+    print("🤖 LLM COMPREHENSION TEST FOR ORIGINAL TOON FORMAT")
     print("=" * 60)
     print(f"Cost Control: Maximum {MAX_API_CALLS} API calls")
     print(f"Confidence Threshold: {confidence_threshold:.1f} (equivalence requires both judge approval and this confidence)")
@@ -396,7 +432,7 @@ def run_llm_comprehension_tests(confidence_threshold: float = DEFAULT_CONFIDENCE
             encoding_result = encode_and_validate(test_case)
             
             print(f"Original tokens: {encoding_result.original_tokens}")
-            print(f"Deep-TOON tokens: {encoding_result.toon_tokens}")
+            print(f"Original TOON tokens: {encoding_result.toon_tokens}")
             print(f"Compression: {encoding_result.compression_ratio:.1f}%")
             print(f"Roundtrip: {'✅' if encoding_result.roundtrip_success else '❌'}")
             
@@ -416,8 +452,8 @@ def run_llm_comprehension_tests(confidence_threshold: float = DEFAULT_CONFIDENCE
                 json_response = query_llm(question, encoding_result.original_json, "JSON")
                 time.sleep(0.5)  # Rate limiting
                 
-                # Query with Deep-TOON format  
-                toon_response = query_llm(question, encoding_result.deep_toon, "Deep-TOON")
+                # Query with Original TOON format  
+                toon_response = query_llm(question, encoding_result.deep_toon, "Original TOON")
                 time.sleep(0.5)  # Rate limiting
                 
                 # Compare responses using LLM judge
@@ -471,9 +507,9 @@ def run_llm_comprehension_tests(confidence_threshold: float = DEFAULT_CONFIDENCE
     if total_questions > 0:
         success_rate = equivalent_responses / total_questions
         if success_rate >= 0.8:
-            print("🎉 SUCCESS: LLMs can understand Deep-TOON format effectively!")
+            print("🎉 SUCCESS: LLMs can understand Original TOON format effectively!")
         elif success_rate >= 0.6:
-            print("🟡 PARTIAL: LLMs show good understanding of Deep-TOON format")
+            print("🟡 PARTIAL: LLMs show good understanding of Original TOON format")
         else:
             print("❌ NEEDS IMPROVEMENT: LLM comprehension issues detected")
     
@@ -486,7 +522,7 @@ def main():
     """Main function with command line argument parsing."""
     global DEBUG_MODE
     
-    parser = argparse.ArgumentParser(description="LLM Comprehension Test for Deep-TOON Format")
+    parser = argparse.ArgumentParser(description="LLM Comprehension Test for Original TOON Format")
     parser.add_argument("--debug", "-d", action="store_true", 
                        help="Enable debug mode (shows full prompts and responses)")
     parser.add_argument("--max-calls", type=int, default=50,

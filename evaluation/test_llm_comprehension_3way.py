@@ -27,7 +27,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from deep_toon import DeepToonEncoder, DeepToonDecoder
 from toon import encode as toon_encode, decode as toon_decode
-from tests.test_data_questions import generate_comprehensive_test_cases, TestCase
+from evaluation.test_data_questions import generate_comprehensive_test_cases, TestCase
 
 
 # Load environment variables

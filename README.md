@@ -143,6 +143,21 @@ encoder = DeepToonEncoder(delimiter=';')
 compressed = encoder.encode(data)
 ```
 
+### Smart Encoding (Save-Safe)
+
+Use `smart_encode` to automatically fall back to minified JSON if Deep-TOON doesn't achieve a specified savings threshold (default 10%).
+
+```python
+from deep_toon import smart_encode
+
+# Only use Deep-TOON if it saves > 10% tokens
+# Otherwise returns minified JSON
+encoded = smart_encode(data, threshold=0.1)
+
+# You can also use a custom token counter (defaults to char length)
+encoded = smart_encode(data, token_counter=len)
+```
+
 ## 🎨 Format Features
 
 ### Schema Declaration
@@ -267,7 +282,7 @@ except DeepToonDecodeError as e:
 
 ### Parsing Strategy
 
-1. **Pattern Matching** - Detect TOON2 tabular format
+1. **Pattern Matching** - Detect Deep-TOON tabular format
 2. **Schema Parsing** - Build nested structure from schema
 3. **Smart Splitting** - Handle quoted strings and nested tuples
 4. **Type Inference** - Convert strings back to appropriate types

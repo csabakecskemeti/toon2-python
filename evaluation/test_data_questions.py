@@ -200,4 +200,181 @@ def generate_comprehensive_test_cases() -> List[TestCase]:
         complexity_level='complex'
     ))
     
+    # ============================================================================
+    # ADDITIONAL DATASETS FROM COMPREHENSIVE TEST (for fidelity/compression only)
+    # ============================================================================
+    
+    # 6. Flat Object Array
+    flat_data = {
+        'items': [
+            {'id': 1, 'name': 'Alice', 'age': 25, 'active': True},
+            {'id': 2, 'name': 'Bob', 'age': 30, 'active': False},
+            {'id': 3, 'name': 'Charlie', 'age': 35, 'active': True}
+        ]
+    }
+    test_cases.append(TestCase(
+        name="Flat Object Array",
+        data=flat_data,
+        questions=[], expected_types=[], complexity_level='simple'
+    ))
+
+    # 7. Single Level Nesting
+    nested_data = {
+        'users': [
+            {
+                'id': 1,
+                'profile': {'name': 'Alice', 'email': 'alice@test.com'},
+                'settings': {'theme': 'dark', 'notifications': True}
+            },
+            {
+                'id': 2, 
+                'profile': {'name': 'Bob', 'email': 'bob@test.com'},
+                'settings': {'theme': 'light', 'notifications': False}
+            }
+        ]
+    }
+    test_cases.append(TestCase(
+        name="Single Level Nesting",
+        data=nested_data,
+        questions=[], expected_types=[], complexity_level='simple'
+    ))
+
+    # 8. Deep Nesting (3+ levels)
+    deep_nested_data = {
+        'company': [
+            {
+                'id': 1,
+                'name': 'TechCorp',
+                'location': {
+                    'address': {
+                        'street': '123 Tech St',
+                        'city': 'San Francisco',
+                        'coordinates': {
+                            'lat': 37.7749,
+                            'lng': -122.4194,
+                            'precision': {'meters': 10, 'confidence': 0.95}
+                        }
+                    },
+                    'timezone': 'PST'
+                },
+                'departments': [
+                    {
+                        'name': 'Engineering',
+                        'head': {
+                            'name': 'Jane Doe',
+                            'contact': {
+                                'email': 'jane@techcorp.com',
+                                'phone': {'office': '555-1234', 'mobile': '555-5678'}
+                            }
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+    test_cases.append(TestCase(
+        name="Deep Nesting",
+        data=deep_nested_data,
+        questions=[], expected_types=[], complexity_level='complex'
+    ))
+
+    # 9. Mixed Data Types
+    mixed_data = {
+        'records': [
+            {
+                'id': 1,
+                'timestamp': '2024-01-01T10:00:00Z',
+                'value': 42.5,
+                'tags': ['urgent', 'customer'],
+                'metadata': {
+                    'source': 'api',
+                    'version': 1.2,
+                    'validated': True,
+                    'errors': None
+                }
+            },
+            {
+                'id': 2,
+                'timestamp': '2024-01-01T11:00:00Z', 
+                'value': -15.8,
+                'tags': ['normal', 'internal'],
+                'metadata': {
+                    'source': 'batch',
+                    'version': 1.1,
+                    'validated': False,
+                    'errors': ['missing_field']
+                }
+            }
+        ]
+    }
+    test_cases.append(TestCase(
+        name="Mixed Data Types",
+        data=mixed_data,
+        questions=[], expected_types=[], complexity_level='complex'
+    ))
+
+    # 10. Sparse Data (lots of nulls)
+    sparse_data = {
+        'entries': [
+            {
+                'id': 1,
+                'name': 'Complete',
+                'email': 'complete@test.com',
+                'phone': '555-1234',
+                'address': {'street': '123 Main', 'city': 'NYC'}
+            },
+            {
+                'id': 2,
+                'name': 'Partial',
+                'email': None,
+                'phone': None,
+                'address': {'street': None, 'city': 'LA'}
+            },
+            {
+                'id': 3,
+                'name': 'Minimal', 
+                'email': None,
+                'phone': None,
+                'address': None
+            }
+        ]
+    }
+    test_cases.append(TestCase(
+        name="Sparse Data",
+        data=sparse_data,
+        questions=[], expected_types=[], complexity_level='simple'
+    ))
+
+    # 11. Array of Primitives
+    primitives_data = {
+        'numbers': [1, 2, 3, 4, 5],
+        'strings': ['apple', 'banana', 'cherry'],
+        'booleans': [True, False, True],
+        'mixed': [1, 'text', True, None, 3.14]
+    }
+    test_cases.append(TestCase(
+        name="Array of Primitives",
+        data=primitives_data,
+        questions=[], expected_types=[], complexity_level='simple'
+    ))
+
+    # 12. Deeply Nested Arrays
+    matrix_data = {
+        'matrix': [
+            [
+                {'x': 0, 'y': 0, 'value': 1.0},
+                {'x': 0, 'y': 1, 'value': 0.5}
+            ],
+            [
+                {'x': 1, 'y': 0, 'value': 0.3},
+                {'x': 1, 'y': 1, 'value': 0.8}
+            ]
+        ]
+    }
+    test_cases.append(TestCase(
+        name="Deeply Nested Arrays",
+        data=matrix_data,
+        questions=[], expected_types=[], complexity_level='complex'
+    ))
+    
     return test_cases

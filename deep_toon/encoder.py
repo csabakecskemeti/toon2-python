@@ -7,7 +7,7 @@ Target: 40-60% token reduction on real-world nested JSON
 """
 
 import json
-from typing import Dict, List, Any, Optional, Set, Tuple
+from typing import Dict, List, Any, Optional, Set, Tuple, Callable
 from dataclasses import dataclass
 import re
 
@@ -49,6 +49,50 @@ class DeepToonEncoder:
             return self._encode_object(data, 0)
         else:
             return json.dumps(data)  # Fallback for primitives
+
+    def smart_encode(
+        self, 
+        data: Any, 
+        threshold: float = 0.1, 
+        token_counter: Optional[Callable[[str], int]] = None
+    ) -> str:
+        """
+        Smartly encode data to Deep-TOON only if it achieves significant savings.
+        
+        Args:
+            data: The data to encode
+            threshold: Minimum savings ratio required (0.1 = 10%). Default: 0.1
+            token_counter: Optional function to count tokens. If None, uses len() (chars).
+            
+        Returns:
+            str: Deep-TOON string if savings >= threshold, otherwise minified JSON.
+        """
+        # 1. Encode to minified JSON
+        json_str = json.dumps(data, separators=(',', ':'))
+        
+        # 2. Encode to Deep-TOON
+        toon_str = self.encode(data)
+        
+        # 3. Calculate costs
+        if token_counter:
+            json_cost = token_counter(json_str)
+            toon_cost = token_counter(toon_str)
+        else:
+            json_cost = len(json_str)
+            toon_cost = len(toon_str)
+            
+        # Avoid division by zero
+        if json_cost == 0:
+            return json_str
+            
+        # 4. Calculate savings
+        savings = (json_cost - toon_cost) / json_cost
+        
+        # 5. Decide
+        if savings >= threshold:
+            return toon_str
+        else:
+            return json_str
     
     def _can_compress_array(self, arr: List[Any]) -> bool:
         """Check if array is suitable for Deep-TOON compression."""

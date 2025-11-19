@@ -18,9 +18,20 @@ class DeepToonDecodeError(Exception):
 class DeepToonDecoder:
     """Clean Deep-TOON decoder for hierarchical tuple format."""
     
-    def decode(self, toon2_str: str) -> Any:
+    def decode(self, deep_toon_str: str) -> Any:
         """Main decoding entry point."""
-        lines = toon2_str.strip().split('\n')
+        if not deep_toon_str:
+            return None
+            
+        # Check for standard JSON (starts with { or [)
+        stripped = deep_toon_str.strip()
+        if stripped.startswith('{') or stripped.startswith('['):
+            try:
+                return json.loads(stripped)
+            except json.JSONDecodeError:
+                pass  # Not valid JSON, proceed to Deep-TOON parsing
+
+        lines = stripped.split('\n')
         if not lines:
             return None
         
@@ -63,7 +74,7 @@ class DeepToonDecoder:
                     return array_data
         
         # Fallback to simple parsing
-        return self._parse_simple_format(toon2_str)
+        return self._parse_simple_format(deep_toon_str)
     
     def _parse_schema(self, schema_str: str) -> List[Dict[str, Any]]:
         """Parse schema string into structured format."""
@@ -268,9 +279,9 @@ class DeepToonDecoder:
         
         return value_str
     
-    def _parse_simple_format(self, toon2_str: str) -> Any:
+    def _parse_simple_format(self, deep_toon_str: str) -> Any:
         """Fallback parser for non-tabular formats."""
-        lines = toon2_str.strip().split('\n')
+        lines = deep_toon_str.strip().split('\n')
         result = {}
         
         i = 0
@@ -321,7 +332,7 @@ class DeepToonDecoder:
             
             i += 1
         
-        return result if result else toon2_str
+        return result if result else deep_toon_str
 
 
 # Test function  

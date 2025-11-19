@@ -166,13 +166,13 @@ class TestBasicDecoding:
 class TestErrorHandling:
     """Test error handling."""
     
-    def test_invalid_toon2_format(self):
-        """Test decoding of invalid TOON2 format."""
+    def test_invalid_deep_toon_format(self):
+        """Test decoding of invalid Deep-TOON format."""
         decoder = DeepToonDecoder()
         
-        # Invalid format just returns as string (fallback behavior)
-        result = decoder.decode("invalid toon2 format")
-        assert result == "invalid toon2 format"
+        # Should return the string as is if it can't be parsed
+        result = decoder.decode("invalid deep-toon format")
+        assert result == "invalid deep-toon format"
 
     def test_malformed_schema(self):
         """Test handling of malformed schema."""

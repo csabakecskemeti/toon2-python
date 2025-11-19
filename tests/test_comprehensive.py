@@ -29,8 +29,8 @@ class TestComprehensiveScenarios:
         # Should achieve good compression
         import json
         original_size = len(json.dumps(data))
-        toon2_size = len(encoded)
-        assert toon2_size < original_size
+        deep_toon_size = len(encoded)
+        assert deep_toon_size < original_size
 
     def test_single_level_nesting(self):
         """Test single level nested objects."""
@@ -209,8 +209,8 @@ class TestComprehensiveScenarios:
         # Should achieve significant compression on large datasets
         import json
         original_size = len(json.dumps(data))
-        toon2_size = len(encoded)
-        compression_ratio = (original_size - toon2_size) / original_size
+        deep_toon_size = len(encoded)
+        compression_ratio = (original_size - deep_toon_size) / original_size
         assert compression_ratio > 0.3  # Expect at least 30% compression
 
     def test_deeply_nested_arrays(self):
@@ -323,17 +323,17 @@ class TestPerformance:
         
         import json
         original_json = json.dumps(data)
-        encoded_toon2 = encoder.encode(data)
-        decoded_data = decoder.decode(encoded_toon2)
+        encoded_deep_toon = encoder.encode(data)
+        decoded_data = decoder.decode(encoded_deep_toon)
         
         # Verify roundtrip
         assert decoded_data == data
         
         # Check compression
         original_size = len(original_json)
-        toon2_size = len(encoded_toon2)
-        compression_ratio = (original_size - toon2_size) / original_size
+        deep_toon_size = len(encoded_deep_toon)
+        compression_ratio = (original_size - deep_toon_size) / original_size
         
         # Should achieve significant compression
         assert compression_ratio > 0.2  # At least 20% compression
-        assert toon2_size < original_size
+        assert deep_toon_size < original_size
